@@ -60,6 +60,25 @@ PRIVATE VNET  (one per dedicated tenant)
 
 All Azure resources follow: `{prefix}-sdlc-{scope}-{env}`
 
+### Prefix meanings
+
+| Prefix | Azure Resource | Example |
+|---|---|---|
+| `rg` | Resource Group | `rg-sdlc-base-dev` |
+| `vnet` | Virtual Network | `vnet-sdlc-base-dev` |
+| `snet` | Subnet | `snet-sdlc-base-dev-postgres` |
+| `kv` | Key Vault | `kv-sdlc-base-dev` |
+| `psql` | PostgreSQL Flexible Server | `psql-sdlc-base-dev` |
+| `id` | Managed Identity | `id-sdlc-base-dev` |
+| `cae` | Container App Environment | `cae-sdlc-base-dev` |
+| `ca` | Container App | `ca-sdlc-base-dev` |
+| `cr` | Container Registry | `crsdlcdev` (no hyphens — Azure rule) |
+| `sb` | Service Bus | `sb-sdlc-shared-dev` |
+| `cosmos` | Cosmos DB | `cosmos-sdlc-shared-dev` |
+| `srch` | Azure AI Search | `srch-sdlc-shared-dev` |
+| `sp` | Service Principal | `sp-sdlc-terraform-dev` |
+| `dns-link` | Private DNS Zone VNet Link | `dns-link-psql-sdlc-base-dev` |
+
 | scope | Meaning |
 |---|---|
 | `base` | Management plane (FastAPI, PostgreSQL, Key Vault) |
