@@ -1,6 +1,6 @@
 # PROGRESS.md — What Has Been Built and What Is Pending
 
-**Last updated:** 2026-08-23 (Session 1)
+**Last updated:** 2026-08-27 (Session 5)
 
 ---
 
@@ -29,73 +29,92 @@ A fully validated local Python pipeline. Everything below is working on real Git
 | Neo4j knowledge graph (dropped from MVP — see migration doc) | Done (dropped) |
 | Two-layer evaluation framework (deterministic + LLM judge) | Done |
 
-**Validated end-to-end on real GitHub — three scenarios:**
-1. Happy path (issue #23) — full lifecycle from requirement to merged PR
-2. Early stop (issue #24) — analyst detects already-implemented, closes cleanly
-3. Rework loop (issue #25) — human rejects, feedback flows to Coder, re-approved
+---
+
+## Repos Built
+
+Each folder below is its own GitHub repo under `IndentWork`.
+
+| Repo | Purpose | Status |
+|---|---|---|
+| [sdlc-docs](https://github.com/IndentWork/sdlc-docs) | Ecosystem docs, architecture, naming conventions | ✅ Live |
+| [sdlc_bootstrap](https://github.com/IndentWork/sdlc_bootstrap) | Bootstrap Azure foundation (SP, storage, org secrets) | ✅ Live |
+| [sdlc-infra](https://github.com/IndentWork/sdlc-infra) | Terraform — 7 modules, plan/apply/destroy pipelines | ✅ Live |
+| [sdlc-shared](https://github.com/IndentWork/sdlc-shared) | Python package — BaseConfig + SelectConfig (v0.1.0) | ✅ Live |
+| [sdlc-control-plane](https://github.com/IndentWork/sdlc-control-plane) | FastAPI + Alembic + SHA256 tenant auth | ✅ Live |
+| [sdlc-local-dev](https://github.com/IndentWork/sdlc-local-dev) | Docker Compose local dev with mocks + init.sql | ✅ Live |
+| [sdlc-e2e](https://github.com/IndentWork/sdlc-e2e) | 31 e2e tests (api / infra / security / flows) | ✅ Live |
+| [sdlc-onboard-client](https://github.com/IndentWork/sdlc-onboard-client) | Onboarding via GitHub issues (WIP — parser needs fixing) | ⚠️ Partial |
+| sdlc_actions | Reusable GitHub Actions for tenants | ❌ Not started |
+| sdlc-orchestrator | Handler A/B/C — Analyst, Coder, Reviewer | ❌ Deferred |
 
 ---
 
-## This Repo — sdlc-platform/
+## Azure Infrastructure Deployed (dev)
 
-**Goal:** Rebuild the prototype as an enterprise-standard multi-tenant Azure service.
+**Resource group:** `rg-sdlc-base-dev`
 
-**What is built here so far:** `sdlc_bootstrap` — Azure bootstrap scripts, pushed to GitHub.
+- `vnet-sdlc-base-dev` — VNet 10.0.0.0/16
+  - `snet-sdlc-base-dev-postgres` (delegated /24)
+  - `snet-sdlc-base-dev-container-app` (delegated /23)
+- `kv-sdlc-base-dev` — Key Vault (RBAC)
+- `id-sdlc-base-dev` — Managed Identity
+- `psql-sdlc-base-dev` — PostgreSQL 16 with `sdlc` database
+- `crsdlcdev` — Container Registry
+- `cae-sdlc-base-dev` — Container App Environment
+- `ca-sdlc-base-dev` — FastAPI Container App
 
-### Repo Layout
-
-Each subfolder below is its own git repository (not a monorepo):
-
-```
-sdlc-platform/
-├── docs/                        ← this folder (architecture + ADRs, NOT a repo)
-├── sdlc_bootstrap/              ← bootstrap scripts (create.sh dev/prod, destroy.sh dev/prod) ✓ DONE
-├── sdlc-infra/                  ← Terraform for all VNets and Azure resources
-├── control-plane/               ← FastAPI + PostgreSQL (tenant registry + routing API)
-├── indexing-worker/             ← crawl + chunk + graph + upload logic
-├── sdlc_actions/                ← reusable GitHub Actions (index + sdlc workflows)
-├── onboard_client/              ← issue templates for tenant onboarding
-└── sdlc-orchestrator/           ← Handler A, B, C (DEFERRED)
-```
+**Ephemeral — created/destroyed as needed** to control cost.
 
 ---
 
-## Build Sequence — 9 Slices
+## Pipelines
 
-Work in horizontal slices — each slice is a running, testable thing. Do not build in vertical layers. Do not chain multiple slices in one session.
-
-| Slice | Description | Exit criteria | Status |
-|---|---|---|---|
-| **1** | Prove Azure OpenAI works — swap `ChatOpenAI` → `AzureChatOpenAI` in one agent, run end-to-end | One LLM call returns from Azure OpenAI, cost visible in Azure portal | **Not started** |
-| **2** | Persistent state — `state_store.py` reads/writes SDLCState JSON to local file; split pipeline into handlers | Two handlers run in separate processes and share state via JSON file | **Not started** |
-| **3** | Webhook trigger locally — ngrok + Flask/FastAPI endpoint; real GitHub webhook fires Handler A | Labelling an issue triggers Handler A locally, no CLI | **Not started** |
-| **4** | Split HITL into PR-comment webhook — parse `/approve` and `/reject`, delete `input()` | PR comment triggers Handler C, pipeline merges or reworks | **Not started** |
-| **5** | Move state to Cosmos DB — same handlers, same JSON, different backing store; add `tenant_id` + `project_id` | Two handlers in separate processes on different machines share state via Cosmos DB | **Not started** |
-| **6** | Move vector store to Azure AI Search — replace ChromaDB client; every doc has tenant metadata; every query filters on it | Analyst runs against AI Search, returns equivalent results | **Not started** |
-| **7** | Deploy handlers to Azure Container Apps — Service Bus wires them together, Managed Identity auth | End-to-end pipeline runs in Azure, driven by GitHub webhook, no local processes | **Not started** |
-| **8** | GitHub App auth — replace PAT with GitHub App installation tokens | Pipeline runs against a real repo using GitHub App auth | **Not started** |
-| **9** | Second tenant — prove isolation with negative tests | Two tenants coexist, tenant A cannot see tenant B's data | **Not started** |
+| Pipeline | Repo | Purpose |
+|---|---|---|
+| SDLC Infra Terraform | sdlc-infra | Plan → approve → apply, dev/prod |
+| SDLC Infra Destroy | sdlc-infra | Plan destroy → approve → destroy |
+| Deploy Control Plane | sdlc-control-plane | Build (if new) → push → deploy to Container App |
+| E2E Tests | sdlc-e2e | 31 tests against deployed environment |
+| Process Onboarding | sdlc-onboard-client | Issue → create tenant → store key in KV (WIP) |
 
 ---
 
 ## Session Log
 
-| Session | Date | What was done | What is next |
+| # | Date | What was done | Next |
 |---|---|---|---|
-| 0 | 2026-08-23 | Created `docs/START_HERE.md`. Read prototype and migration docs. Created `DOMAIN.md`, `PROGRESS.md`, `TASK_PLAN.md`. | Bootstrap infra. |
-| 1 | 2026-08-23 | Designed full architecture (3 VNets, tenant onboarding, sdlc_actions pattern, WIF auth, GitHub App for private repo cloning, org-level secrets). Built `sdlc_bootstrap` — modular create/destroy scripts with dev/prod env support. Created Azure Storage Account (`stsdlcindentdev`) + SP (`sp-sdlc-terraform-dev`). Org secrets (`SDLC_DEV_AZURE_*_TERRAFORM`) auto-added to IndentWork via `gh` CLI. Tested `bash create.sh dev` end to end. Pushed to `IndentWork/sdlc_bootstrap`. | Start `sdlc-infra` Terraform repo. |
+| 0 | 2026-08-23 | Read prototype + migration docs, wrote DOMAIN.md/PROGRESS.md/TASK_PLAN.md | Bootstrap |
+| 1 | 2026-08-23 | Designed 3-VNet architecture, built `sdlc_bootstrap`, created SP + storage | Start `sdlc-infra` |
+| 2 | 2026-08-24 | Built `sdlc-infra` — 5 modules (RG/VNet/KV/MI/postgres) + pipelines | Container App module |
+| 3 | 2026-08-25 | Built container-app + container-registry modules, `sdlc-shared`, `sdlc-control-plane` (FastAPI + Alembic + tenants CRUD), `sdlc-local-dev` (Docker), `sdlc-e2e` (28 tests) | Fix deploy pipeline |
+| 4 | 2026-08-26 | Fixed deploy pipeline (registry auth), created `sdlc` database, all 27 e2e tests passing on Azure | Real POST /index |
+| 5 | 2026-08-27 | Implemented SHA256 tenant auth (POST /tenants returns key, POST /index verifies). Refactored control-plane into schemas/security modules. All 31 e2e tests passing on Azure. Started `sdlc-onboard-client` — form + pipeline created, parser needs Python rewrite | Fix onboarding parser, then build shared-vnet + dedicated-vnet modules |
 
 ---
 
-## Key Files to Read Before Writing Any Code
+## What's Next
+
+**Immediate:**
+1. Rewrite onboarding pipeline using Python script (`scripts/process_onboard.py`) — the YAML parser action returned nulls
+2. Fix duplicate trigger — only run on `opened` event
+
+**After onboarding works:**
+3. Add columns to `tenants` table: `org_code`, `tier`
+4. Build `shared-vnet` Terraform module (Service Bus at minimum)
+5. Wire FastAPI POST /index to put messages on Service Bus
+6. Build `private-vnet` (dedicated) Terraform module — provisioned per dedicated tenant during onboarding
+7. Build `sdlc-orchestrator` (Handler A/B/C) — port from prototype
+
+---
+
+## Key Files to Read Before Writing Code
 
 | File | What it teaches |
 |---|---|
-| `docs/START_HERE.md` (this repo) | Project rules, closed decisions, invariants, build sequence |
-| `docs/DOMAIN.md` (this repo) | Roles, data models, business rules, guardrails |
-| `/home/ashish/project/github_agentic_sdlc/docs/migrate_to_enterprise_standard_to_azure.md` | Migration decisions — event-driven handlers, Azure service choices, vector store tiers |
-| `/home/ashish/project/github_agentic_sdlc/src/sdlc.py` | The orchestrator — see the full pipeline sequence |
-| `/home/ashish/project/github_agentic_sdlc/src/state.py` | SDLCState — all fields with documented lifecycle |
-| `/home/ashish/project/github_agentic_sdlc/src/agents/` | All four specialist agents |
-| `/home/ashish/project/github_agentic_sdlc/src/tools/` | Tool modules — codebase, git, github, github_board |
-| `/home/ashish/project/github_agentic_sdlc/src/guardrails/write_files.py` | File-write guardrail — understand before porting |
+| `sdlc-docs/README.md` | Ecosystem overview, naming conventions, all repos |
+| `sdlc-docs/architecture/DOMAIN.md` | Roles, data models, business rules, guardrails |
+| `sdlc-docs/START_HERE.md` | Project rules, closed decisions, invariants |
+| `/home/ashish/project/github_agentic_sdlc/docs/migrate_to_enterprise_standard_to_azure.md` | Migration decisions — event-driven handlers, Azure choices, vector store tiers |
+| `/home/ashish/project/github_agentic_sdlc/src/sdlc.py` | Prototype orchestrator — full pipeline sequence |
+| `/home/ashish/project/github_agentic_sdlc/src/agents/` | Four specialist agents to port |
