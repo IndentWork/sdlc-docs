@@ -134,11 +134,20 @@ Azure Blob Storage (stsdlcshareddev/checkpoints):
 
 checkpoints/
   {resource_code}/
-    {repo}/
-      _project.json        ← index: list of files + SHAs + crawled_at
-      cart.py.json         ← crawl output for cart.py
-      models.py.json       ← crawl output for models.py
-      order_manager.py.json
+    {github_org}/
+      {project}/
+        {repo}/
+          _project.json        ← index: list of files + SHAs + crawled_at
+          cart.py.json         ← crawl output for cart.py
+          models.py.json       ← crawl output for models.py
+          order_manager.py.json
+```
+
+Example:
+```
+checkpoints/b310545b/sdlc-tenant/ecommerce/cart-service/_project.json
+checkpoints/b310545b/sdlc-tenant/ecommerce/cart-service/cart.py.json
+checkpoints/b310545b/sdlc-tenant/ecommerce/cart-service/models.py.json
 ```
 
 **`_project.json` format:**
@@ -146,6 +155,7 @@ checkpoints/
 {
   "resource_code": "b310545b",
   "github_org":    "sdlc-tenant",
+  "project":       "ecommerce",
   "repo":          "cart-service",
   "crawled_at":    "2026-09-05T10:00:00Z",
   "files": [
