@@ -98,20 +98,33 @@ gh workflow run "Deploy Control Plane" \
 
 ---
 
-## Step 6: Deploy Worker Tester
+## Step 6: Bootstrap Worker Container Apps
 
-**Build and deploy tester worker to base Container App environment:**
+**Create worker Container Apps with correct configuration (one-time per environment):**
 
 ```bash
-cd /home/ashish/project/sdlc-platform/sdlc-worker-tester
+cd /home/ashish/project/sdlc-platform/sdlc-infra
 
-# Push to main triggers auto-deploy, or manually:
-gh workflow run deploy.yml
-
-# Wait for build, push, and Container App update
+./scripts/bootstrap-workers.sh dev
 ```
 
-**Status:** ✅ Worker listening on tester subscription
+This creates `ca-sdlc-tester-dev` and `ca-sdlc-indexing-dev` with:
+- Correct `AZURE_CLIENT_ID` — uses **clientId** (NOT principalId) of shared MI
+- ACR registry auth configured automatically
+- All required env vars set
+
+**IMPORTANT:** `AZURE_CLIENT_ID` must be the **clientId** of `id-sdlc-shared-{env}`.
+Using `principalId` instead causes `ManagedIdentityCredential` authentication failure.
+
+Then deploy the worker images:
+
+```bash
+# Trigger deploy pipelines in GitHub Actions
+gh workflow run deploy.yml --repo IndentWork/sdlc-worker-tester
+gh workflow run deploy.yml --repo IndentWork/sdlc-worker-indexing -f env=DEV
+```
+
+**Status:** ✅ Workers deployed and listening on Service Bus subscriptions
 
 ---
 
